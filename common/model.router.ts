@@ -3,31 +3,78 @@ import { Router } from './router';
 import { NotFoundError } from 'restify-errors';
 
 export abstract class ModelRouter<D extends mongoose.Document> extends Router {
-    constructor(protected model: mongoose.Model<D>){
+
+    basePath: string
+
+    pageSize: number = 1
+
+    constructor(protected model: mongoose.Model<D>) {
         super();
+        this.basePath = `/${model.collection.name}`
+    }
+
+    protected prepareOne(query: mongoose.DocumentQuery<D, D>): mongoose.DocumentQuery<D, D> {
+        return query;
+    }
+
+    envelope(document: any): any {
+        let resource = Object.assign({ _links: {} }, document.toJSON())
+        resource._links.self = `${this.basePath}/${resource._id}`
+        return resource
+    }
+
+    envelopeAll(documents, options: any = {}) {
+        let resource: any = {
+            _links: {
+                self: `${options.url}`
+            },
+            items: documents
+        }
+        if (options.page && options.count && options.pageSize){
+            if (options.page > 1) {
+                resource._links.previous = `${this.basePath}?_page=${options.page - 1}`
+            }
+            const remaining = options.count - (options.page * options.pageSize)
+            if(remaining > 0) {
+                resource._links.next = `${this.basePath}?_page=${options.page + 1}`
+            }
+        }
+        return resource
     }
 
     validateId = (req, res, next) => {
-        if(!mongoose.Types.ObjectId.isValid(req.params.id)){
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             next(new NotFoundError('Document not found!'))
-        } else{
+        } else {
             next();
         }
     }
 
-    findAll =  (req, res, next) => {
-        this.model.find().then(this.renderAll(res, next))
-                    .catch(next)
+
+    findAll = (req, res, next) => {
+        let page = parseInt(req.query._page || 1)
+        page = page > 0 ? page : 1
+        const skip = (page - 1) * this.pageSize
+
+        this.model.count({}).exec().then(count => {
+            this.model.find()
+                .skip(skip)
+                .limit(this.pageSize)
+                .then(this.renderAll(res, next, { page, count, pageSize: this.pageSize, url: req.url }))
+        }).catch(next)
+
+
     }
     findById = (req, res, next) => {
-        this.model.findById(req.params.id).then(this.render(res, next)).catch(next)
+        this.prepareOne(this.model.findById(req.params.id))
+            .then(this.render(res, next)).catch(next)
     }
     save = (req, res, next) => {
         let doc = new this.model(req.body);
         doc.save().then(this.render(res, next)).catch(next)
     }
-    replace =  (req, res, next) => {
-        const options = { 
+    replace = (req, res, next) => {
+        const options = {
             overwrite: true,
             runValidators: true
         }
@@ -47,7 +94,7 @@ export abstract class ModelRouter<D extends mongoose.Document> extends Router {
             .exec()
             .then(this.render(res, next)).catch(next)
     }
-    delete =  (req, res, next) => {
+    delete = (req, res, next) => {
         this.model.remove({ _id: req.params.id })
             .exec()
             .then((cmdResult: any) => {
