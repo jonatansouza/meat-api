@@ -6,6 +6,7 @@ import { Router } from '../common/router'
 import {mergePatchBodyParser} from './merge-patch.parser'
 import { handleError } from './error-handler';
 import { tokenParser } from '../security/token.parser';
+import { logger } from '../common/logger';
 
 export class Server {
     application: restify.Server
@@ -24,12 +25,21 @@ export class Server {
                 const options: restify.ServerOptions = {
                     name: 'meat-api',
                     version: '1.0.0',
+                    log: logger
                 }
                 if(environment.security.enableHTTPS){
                     options.certificate = fs.readFileSync(environment.security.certificate)
                     options.key = fs.readFileSync(environment.security.key)
                 }
                 this.application = restify.createServer(options)
+
+                /**
+                 * logger config
+                 */
+                this.application.pre(restify.plugins.requestLogger({
+                    log: logger
+                }))
+
                 /**
                  * Parser dos parametros
                  */
@@ -57,6 +67,16 @@ export class Server {
                 })
 
                 this.application.on('restifyError', handleError)
+                /**
+                 * event loggers, tomar muito cuidado com os logs de dados sensíveis,
+                 * tipo token de autenticação e passwords no body 
+                 */
+                 this.application.on('after', restify.plugins.auditLogger({
+                    log: logger,
+                    event: 'after',
+                    body: true
+                }))
+
             } catch (error) {
                 reject(error)
             }
