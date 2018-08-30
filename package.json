@@ -10,8 +10,9 @@
   "author": "",
   "license": "ISC",
   "jest": {
-    "globals":{
-      "address":"http://localhost:3001"
+    "globals": {
+      "address": "http://localhost:3001",
+      "auth": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiYXRtYW5AZGMuY29tIiwiaXNzIjoibWVhdC1hcGkiLCJpYXQiOjE1MzU2NTg5OTZ9.c3hN1QcFFkIOW2ABDtKm6C0CwN7yL4aOeJOXB_s1mAw"
     },
     "testEnvironment": "node",
     "transform": {
@@ -29,6 +30,7 @@
   },
   "dependencies": {
     "bcrypt": "3.0.0",
+    "jsonwebtoken": "8.1.1",
     "mongoose": "4.13.9",
     "restify": "6.3.4",
     "restify-errors": "5.0.0"
@@ -36,8 +38,9 @@
   "devDependencies": {
     "@types/bcrypt": "^2.0.0",
     "@types/jest": "22.1.2",
+    "@types/jsonwebtoken": "7.2.8",
     "@types/mongoose": "4.7.32",
-    "@types/restify": "5.0.6",
+    "@types/restify": "^5.0.6",
     "@types/restify-errors": "4.3.2",
     "@types/supertest": "2.0.4",
     "jest": "22.4.2",

@@ -5,7 +5,7 @@ import * as request from 'supertest'
 import {environment} from '../common/environment'
 
 let address: string = (<any>global).address
-
+const auth: string = (<any>global).auth
 test('get /reviews', ()=>{
   return request(address)
          .get('/reviews')
@@ -32,6 +32,7 @@ test('get /reviews/aaaaa - not found', ()=>{
 test('post /reviews', ()=>{
   return request(address)
             .post('/reviews')
+            .set('Authorization', auth)
             .send({
               date: '2018-02-02T20:20:20',
               rating: 4,
